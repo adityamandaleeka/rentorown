@@ -4,6 +4,10 @@ Compare keeping a home with selling it, renting, and investing the proceeds. Adj
 
 Defaults are generic examples. Inputs are saved in browser local storage, not sent to a server. Use **Reset to example** to restore the defaults.
 
+[Open the calculator](https://adityamandaleeka.github.io/rentorown/).
+
+Pushes to `main` run the tests and deploy to GitHub Pages.
+
 ## Run
 
 Requires Node.js 22.18+.

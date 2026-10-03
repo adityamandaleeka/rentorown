@@ -14,7 +14,7 @@ test('initial dashboard matches the financial model and has no runtime errors or
   page.on('request', request => {
     if (!request.url().startsWith('http://127.0.0.1:4173') && !request.url().startsWith('data:')) external.push(request.url());
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('Rent vs. own calculator');
   await expect(page.locator('body')).not.toContainText(/A decision, not a prediction|Two paths|The next chapter|A plan to grow|The everyday numbers|A little growth changes a lot|move the needle|Same household budget\. Two different places|A little clarity|Just your numbers/i);
   const model = simulate(DEFAULTS);
@@ -25,6 +25,15 @@ test('initial dashboard matches the financial model and has no runtime errors or
   await expect(page.getByLabel('Mortgage balance', { exact: true })).toHaveValue('350000');
   await expect(page.getByLabel('Monthly apartment rent', { exact: true })).toHaveValue('2000');
   await expect(page.locator('.recharts-area-curve')).toHaveCount(2);
+  const homeUrl = page.url();
+  await page.getByRole('link', { name: 'Stay or Rent home' }).click();
+  await expect(page).toHaveURL(homeUrl);
+  await expect(page.locator('.recharts-area-curve')).toHaveCount(2);
+  const iconPath = await page.locator('link[rel="icon"]').getAttribute('href');
+  expect(iconPath).toBeTruthy();
+  if (iconPath) {
+    await expect(await page.request.get(new URL(iconPath, page.url()).href)).toBeOK();
+  }
   await page.evaluate(() => document.fonts.ready);
   await page.screenshot({ path: testInfo.outputPath('dashboard-desktop.png'), fullPage: true });
   expect(errors).toEqual([]);
@@ -32,7 +41,7 @@ test('initial dashboard matches the financial model and has no runtime errors or
 });
 
 test('editing rent, growth, and horizon recalculates and persists the scenario', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByLabel('Monthly apartment rent', { exact: true }).fill('4000');
   await page.getByRole('button', { name: '20y', exact: true }).click();
   await page.getByRole('button', { name: '0%', exact: true }).click();
@@ -72,7 +81,7 @@ test('saved user inputs and display settings take precedence over example defaul
     liquidateHome: false,
   };
   await page.addInitScript(a => localStorage.setItem('stay-or-rent:assumptions:v1', JSON.stringify(a)), saved);
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByLabel('Current home value', { exact: true })).toHaveValue('650000');
   await expect(page.getByLabel('Monthly apartment rent', { exact: true })).toHaveValue('2750');
   await expect(page.getByLabel('Years left on mortgage', { exact: true })).toHaveValue('18');
@@ -84,7 +93,7 @@ test('saved user inputs and display settings take precedence over example defaul
 });
 
 test('cash-out and inflation toggles change the correct amounts', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByRole('checkbox', { name: /Cash-out comparison/ }).uncheck();
   const changed = { ...DEFAULTS, liquidateHome: false };
   await expect(page.getByTestId('owner-wealth')).toHaveText(money(simulate(changed).end.ownerNetWorth));
@@ -99,7 +108,7 @@ test('cash-out and inflation toggles change the correct amounts', async ({ page 
 });
 
 test('invalid input is explicit and valid edits recover the projection', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByLabel('Current home value', { exact: true }).fill('');
   await expect(page.getByRole('alert')).toContainText('The comparison will update');
   await expect(page.getByTestId('owner-wealth')).toHaveCount(0);
@@ -114,7 +123,7 @@ test('invalid input is explicit and valid edits recover the projection', async (
 });
 
 test('table and CSV expose exact yearly figures and assumptions', async ({ page }) => {
-  await page.goto('/');
+  await page.goto('./');
   await page.getByText('Year-by-year projection', { exact: true }).click();
   await expect(page.locator('tbody tr')).toHaveCount(DEFAULTS.years + 1);
   const downloadPromise = page.waitForEvent('download');
@@ -132,7 +141,7 @@ test('table and CSV expose exact yearly figures and assumptions', async ({ page 
 
 test('mobile starts with results, inputs expand, and the page has no horizontal overflow', async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByLabel('Current home value', { exact: true })).not.toBeVisible();
   await expect(page.getByTestId('owner-wealth')).toBeVisible();
   await page.evaluate(() => document.fonts.ready);
@@ -147,7 +156,7 @@ test('mobile starts with results, inputs expand, and the page has no horizontal 
 
 test('corrupt saved data is reported and recoverable', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('stay-or-rent:assumptions:v1', '{broken'));
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('status')).toContainText('saved scenario could not be read');
   await expect(page.getByTestId('owner-wealth')).toBeVisible();
 });
@@ -156,7 +165,7 @@ test('unavailable browser storage is reported without blocking calculations', as
   await page.addInitScript(() => {
     Storage.prototype.setItem = () => { throw new DOMException('Storage is disabled', 'SecurityError'); };
   });
-  await page.goto('/');
+  await page.goto('./');
   await expect(page.getByRole('status')).toContainText('could not be saved in this browser');
   await page.getByLabel('Monthly apartment rent', { exact: true }).fill('2600');
   await expect(page.getByTestId('renter-wealth')).toHaveText(money(simulate({ ...DEFAULTS, rent: 2_600 }).end.renterNetWorth));

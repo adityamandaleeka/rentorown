@@ -142,7 +142,7 @@ export default function App() {
   return (
     <>
       <header className="site-header">
-        <a className="brand" href="/" aria-label="Stay or Rent home"><span className="brand-mark"><House size={23} strokeWidth={1.7} /></span><span>stay<span className="brand-or">or</span>rent<span className="brand-period">.</span></span></a>
+        <a className="brand" href={import.meta.env.BASE_URL} aria-label="Stay or Rent home"><span className="brand-mark"><House size={23} strokeWidth={1.7} /></span><span>stay<span className="brand-or">or</span>rent<span className="brand-period">.</span></span></a>
       </header>
       <main className="page-shell">
         <div className="page-intro">
